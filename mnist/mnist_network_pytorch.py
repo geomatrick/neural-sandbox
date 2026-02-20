@@ -23,17 +23,13 @@ class Network(nn.Module):
         loss_fn = nn.MSELoss()
         n = len(training_data)
         for j in range(epochs):
-            # TODO: shuffle training_data each epoch
             random.shuffle(training_data)
-            # TODO: partition into mini batches
             mini_batches = [training_data[k:k+mini_batch_size] for k in range(0, n, mini_batch_size)]
 
 
             for mini_batch in mini_batches:
-                # TODO: convert mini batch to tensors
                 xs = torch.stack([torch.tensor(x, dtype=torch.float32).squeeze() for x, _ in mini_batch])
                 ys = torch.stack([torch.tensor(y, dtype=torch.float32).squeeze() for _, y in mini_batch])
-                # TODO: zero_grad, forward pass, loss, backward, step
                 optimizer.zero_grad()
                 output = self.forward(xs)
                 loss = loss_fn(output, ys)
