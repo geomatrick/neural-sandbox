@@ -1,0 +1,9 @@
+# Data
+mnist/data/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Jupyter
+.ipynb_checkpoints/
