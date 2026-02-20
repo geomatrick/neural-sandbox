@@ -4,28 +4,63 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Python sandbox for implementing a feedforward neural network trained with stochastic gradient descent (SGD) and backpropagation, targeting MNIST digit classification. Based on Michael Nielsen's "Neural Networks and Deep Learning" book.
+A Python sandbox for learning neural networks by implementing MNIST digit classification two ways:
+1. **NumPy** — manual backpropagation following Michael Nielsen's "Neural Networks and Deep Learning"
+2. **PyTorch** — the same network reimplemented using PyTorch idioms (`nn.Module`, autograd, optimiser)
 
-## Running the Code
+## Structure
 
+All code lives in the `mnist/` directory:
+
+- [mnist/mnist_network_numpy.py](mnist/mnist_network_numpy.py) — NumPy implementation with manual backprop
+- [mnist/mnist_network_pytorch.py](mnist/mnist_network_pytorch.py) — PyTorch reimplementation
+- [mnist/mnist_loader.py](mnist/mnist_loader.py) — loads `data/mnist.pkl.gz` via `load_data_wrapper()`
+- [mnist/expand_mnist.py](mnist/expand_mnist.py) — augments training set to 250k images by shifting pixels
+- [mnist/mnist_network_numpy_train.ipynb](mnist/mnist_network_numpy_train.ipynb) — notebook to train/run NumPy network
+- [mnist/mnist_network_pytorch_train.ipynb](mnist/mnist_network_pytorch_train.ipynb) — notebook to train/run PyTorch network
+
+MNIST data is not committed. Download it with:
 ```bash
-python mnist-network.py
+mkdir -p mnist/data
+curl -o mnist/data/mnist.pkl.gz https://raw.githubusercontent.com/mnielsen/neural-networks-and-deep-learning/master/data/mnist.pkl.gz
 ```
 
-Dependencies: `numpy` (install via `pip install numpy`).
+## Dependencies
+
+```bash
+pip install numpy torch
+```
+
+## Running
+
+From the `mnist/` directory, launch a notebook:
+```bash
+jupyter notebook mnist_network_numpy_train.ipynb
+```
+
+Or from the repo root via Python:
+```python
+import sys; sys.path.insert(0, 'mnist')
+import mnist_loader, mnist_network_numpy
+training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
+net = mnist_network_numpy.Network([784, 30, 10])
+net.SGD(training_data, 30, 10, 3.0, test_data=test_data)
+```
 
 ## Architecture
 
-Single module: [mnist-network.py](mnist-network.py)
-
-- `Network(sizes)` — core class; `sizes` is a list of layer widths (e.g. `[784, 30, 10]` for MNIST)
+### NumPy network (`Network` class)
 - `SGD(training_data, epochs, mini_batch_size, eta, test_data)` — outer training loop
-- `update_mini_batch(mini_batch, eta)` — applies one gradient descent step via backprop
-- `backprop(x, y)` — returns `(nabla_b, nabla_w)` gradients using forward + backward pass
-- `feedforward(a)` — inference pass; applies sigmoid at each layer
-- `evaluate(test_data)` — counts correct classifications (argmax of output layer)
-- `sigmoid(z)` / `sigmoid_prime(z)` — activation function and its derivative
+- `update_mini_batch(mini_batch, eta)` — accumulates gradients across the batch then applies update
+- `backprop(x, y)` — manual forward + backward pass; returns `(nabla_b, nabla_w)`
+- `feedforward(a)` — inference only (no gradient tracking)
+- `evaluate(test_data)` — argmax of output layer vs label
 
-## Current Status
+### PyTorch network (`Network(nn.Module)`)
+- `forward(x)` — replaces `feedforward`; called automatically by PyTorch
+- `train_network(...)` — replaces `SGD`; uses `optim.SGD`, `nn.MSELoss`, `loss.backward()`
+- `evaluate(test_data)` — same logic as NumPy version, wrapped in `torch.no_grad()`
+- Weights/biases managed automatically by `nn.Linear` (Kaiming uniform init by default)
 
-All methods are stubs. The docstrings describe the expected behavior; implementations need to be filled in.
+### Key difference
+The NumPy version implements backpropagation by hand (BP1–BP4 from Nielsen). The PyTorch version replaces the entire `backprop` method with a single `loss.backward()` call.
